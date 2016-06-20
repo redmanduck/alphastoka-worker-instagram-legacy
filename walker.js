@@ -30,7 +30,7 @@ var seedList = [{
     depth: 0
 }];
 
-var collection = [];
+var collection = {};
 
 function typeKeys(page, string) {
     for (var i = 0; i < string.length; i++) {
@@ -46,7 +46,7 @@ function getImage(index, page) {
 
 function walk(user, page) {
 
-    console.log("Stalking", user.username, " remaining: ", seedList.length, " collected: ", collection.length);
+    console.log("Stalking", user.username, " remaining: ", seedList.length, " collected: ", Object.keys(collection).length);
     if (page) page.close();
     page = createPage();
     var url = 'https://www.instagram.com/' + user.username;
@@ -58,7 +58,9 @@ function walk(user, page) {
 
         var rawData = {
             user: user,
-            images: []
+            images: [],
+            comments: [],
+            liketimes: []
         };
 
         //Find "fllowing" button which will bring up followign list
@@ -108,6 +110,7 @@ function walk(user, page) {
 
             var subPage = createPage();
             var surl = 'https://www.instagram.com' + nthImageUri;
+
             console.log('going to ', surl)
             subPage.open(surl, function(status) {
                 setTimeout(function() {
@@ -130,6 +133,14 @@ function walk(user, page) {
                                     return $("._d39wz").text()
                                 });
 
+                                var avatar = subPage.evaluate(function(){
+                                    var img = $("img")[0];
+                                    return {
+                                        alt: $(img).attr('alt'),
+                                        src: $(img).attr('src')
+                                    }
+                                });
+
                                 var imageData = subPage.evaluate(function() {
                                     var img = $("img[id*='pImage']");
                                     return {
@@ -138,15 +149,18 @@ function walk(user, page) {
                                     }
                                 });
 
+                                rawData.images.push(avatar);
                                 rawData.images.push(imageData);
+                                rawData.comments.push(comments);
+                                rawData.liketimes.push(likesTime);
 
                                 //Save
                                 subPage.render('data/' + user.username + '_img' + n + '.png');
                                 subPage.close();
                             }
 
-                            //add image to lists
-                            collection[user.username] = rawData;
+                            //save collection
+                            if(nthImageUri !== null) collection[user.username] = rawData;
                             var next = Nlist.shift();
                             if (!next) {
                                 done();
