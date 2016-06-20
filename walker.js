@@ -1,5 +1,5 @@
 var fs = require('fs');
-var MAX_DEPTH = 1;
+var MAX_DEPTH = 2;
 var IMAGE_SAMPLE = 2;
 
 function createPage() {
@@ -46,7 +46,7 @@ function getImage(index, page) {
 
 function walk(user, page) {
 
-    console.log("Stalking", user.username, " remaining: ", seedList.length, " collected: ", Object.keys(collection).length);
+    console.log("Stalking", user.username,"depth" , user.depth, " remaining: ", seedList.length, " collected: ", Object.keys(collection).length);
     if (page) page.close();
     page = createPage();
     var url = 'https://www.instagram.com/' + user.username;
@@ -72,16 +72,17 @@ function walk(user, page) {
         //Collect followers (w)
         setTimeout(function() {
             //get each item
-            var followingItems = page.evaluate(function() {
+            var followingItems = page.evaluate(function(user) {
                 var L = document.querySelectorAll("._mmgca a");
                 var l = [];
                 for (var x = 0; x < L.length; x++) {
                     l.push({
-                        username: L[x].text
+                        username: L[x].text,
+			            depth: (user.depth + 1)
                     });
                 }
                 return l;
-            });
+            }, user);
 
             if (user.depth < MAX_DEPTH) {
                 seedList = seedList.concat(followingItems);

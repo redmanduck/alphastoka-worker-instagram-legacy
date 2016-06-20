@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
-mongoose.connect('mongodb://localhost/alphastoka');
+mongoose.connect('mongodb://washington:poly@ds025772.mlab.com:25772/alphastoka');
 
 var collectionData = require('./data/collection.json')
 
