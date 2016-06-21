@@ -1,10 +1,12 @@
 var fs = require('fs');
 var MAX_DEPTH = 3;
-var IMAGE_SAMPLE = 2;
-
+var IMAGE_SAMPLE = 1;
+var QUEUE_NAME = "nightking";
+var MLAB_API_KEY = "ucQuRaICqjzsxmtTVyuXp3dxzNheiKmy";
+var MLAB_TEMP_COLLECTION = "raw"
 /*
-* Create new view port
-*/
+ * Create new view port
+ */
 function createPage() {
     var p = require('webpage').create();
     p.settings.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36';
@@ -15,8 +17,31 @@ function createPage() {
     return p;
 }
 
+function waitFor(testFx, onReady, timeOutMillis) {
+    var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
+        start = new Date().getTime(),
+        condition = false,
+        interval = setInterval(function() {
+            if ( (new Date().getTime() - start < maxtimeOutMillis) && !condition ) {
+                // If not time-out yet and condition not yet fulfilled
+                condition = (typeof(testFx) === "string" ? eval(testFx) : testFx()); //< defensive code
+            } else {
+                if(!condition) {
+                    // If condition still not fulfilled (timeout but condition is 'false')
+                    console.log("'waitFor()' timeout");
+                    phantom.exit(1);
+                } else {
+                    // Condition fulfilled (timeout and/or condition is 'true')
+                    console.log("'waitFor()' finished in " + (new Date().getTime() - start) + "ms.");
+                    typeof(onReady) === "string" ? eval(onReady) : onReady(); //< Do what it's supposed to do once the condition is fulfilled
+                    clearInterval(interval); //< Stop this interval
+                }
+            }
+        }, 250); //< repeat check every 250ms
+};
+
 //List of nodes to start from (root nodes)
-var seedList = require('./init.json');
+var seedList =  [{ username: 'ssabpisa', depth : 0}]// require('./init.json');
 
 //Colection result
 var collection = {};
@@ -35,13 +60,43 @@ function getImage(index, page) {
 
 //Recursive walk function
 function walk(user, page) {
-
-    console.log("Stalking", user.username,"depth" , user.depth, " remaining: ", seedList.length, " collected: ", Object.keys(collection).length);
+    console.log("Stalking", user.username, "depth", user.depth, user);
     if (page) page.close();
     page = createPage();
     var url = 'https://www.instagram.com/' + user.username;
 
     page.open(url, function(status) {
+
+        console.log("[" + status + "]");
+
+        page.injectJs('scripts/sockjs-0.3.js');
+        page.injectJs('scripts/stomp.js');
+
+        page.onCallback = function(data) {
+          console.log('CALLBACK: ' + JSON.stringify(data));
+        };
+
+        //RabbitMQ broker connection
+        page.evaluate(function(QUEUE_NAME) {
+            var ws = new SockJS('http://127.0.0.1:15674/stomp');
+            window.client = Stomp.over(ws);
+
+            var on_connect = function() {
+                window.callPhantom({ evt: 'connected' });
+                var headers = { 'prefetch-count' : 1, 'ack': 'client' };
+                window.client.subscribe("/amq/queue/" + QUEUE_NAME, function(d) {
+                    window.callPhantom({ evt: 'subscribe'});
+                    // d.ack();
+                    window.msg = d;
+                }, headers);
+            };
+            var on_error =  function() {
+                window.callPhantom({ evt: 'error' });
+            };
+            window.client.connect('guest', 'guest', on_connect, on_error, '/');
+
+        }, QUEUE_NAME);
+
 
         //things we can do immediately
         var head = page.evaluate(function() {
@@ -70,14 +125,21 @@ function walk(user, page) {
                 for (var x = 0; x < L.length; x++) {
                     l.push({
                         username: L[x].text,
-			            depth: (user.depth + 1)
+                        depth: (user.depth + 1)
                     });
                 }
                 return l;
             }, user);
 
             if (user.depth < MAX_DEPTH) {
-                seedList = seedList.concat(followingItems);
+                // seedList = seedList.concat(followingItems);
+                page.evaluate(function(followingItems, QUEUE_NAME){
+                    for(var j = 0 ;j<followingItems.length; j++){
+                        var toCommander = followingItems[j];
+                        window.client.send("/amq/queue/" + QUEUE_NAME, {priority: 9},  JSON.stringify(toCommander));
+
+                    }
+                }, followingItems, QUEUE_NAME);
             } else {
                 console.log("Max depth reached.");
             }
@@ -87,7 +149,7 @@ function walk(user, page) {
 
             page.render('data/' + user.username + '_1.png');
 
-        }, 1500);//wait this long for follower list to load
+        }, 1500); //wait this long for follower list to load
 
 
         //List of nth position of images to get
@@ -111,11 +173,11 @@ function walk(user, page) {
                         var loadMoreComments = subPage.evaluate(function() {
                             return $("article button")[1];
                         });
-                        if(loadMoreComments)
+                        if (loadMoreComments)
                             subPage.sendEvent('click', loadMoreComments.left, loadMoreComments.top);
                         //Wait for page to load results
                         setTimeout(function() {
-                            if(loadMoreComments){
+                            if (loadMoreComments) {
                                 //find comments section
                                 var comments = subPage.evaluate(function() {
                                     return $("._123ym").text()
@@ -126,7 +188,7 @@ function walk(user, page) {
                                     return $("._d39wz").text()
                                 });
 
-                                var avatar = subPage.evaluate(function(){
+                                var avatar = subPage.evaluate(function() {
                                     var img = $("img")[0];
                                     return {
                                         alt: $(img).attr('alt'),
@@ -153,7 +215,7 @@ function walk(user, page) {
                             }
 
                             //save collection
-                            if(nthImageUri !== null) collection[user.username] = rawData;
+                            if (nthImageUri !== null) collection[user.username] = rawData;
                             var next = Nlist.shift();
                             if (!next) {
                                 done();
@@ -172,29 +234,54 @@ function walk(user, page) {
         setTimeout(function() {
             //done is called when Nlist is exhausted
             var done = function() {
-                var next = null;
-                do{
-                    next = seedList.shift();
-                }while(next in collection);
+                // var next = null;
+                // do {
+                //     next = seedList.shift();
+                // } while (next in collection);
+
+                var next = page.evaluate(function(QUEUE_NAME) {
+                    if(!window.msg){
+                        window.client.disconnect();
+                        return null;
+                    }
+                    var x = JSON.parse(window.msg.body);
+                    window.msg.ack();
+                    window.client.disconnect();
+                    return x;
+                }, QUEUE_NAME);
+
+                console.log(next);
+
+                //save profile data
+                // rawData.
+                page.evaluate(function(rawData, MLAB_API_KEY, MLAB_TEMP_COLLECTION){
+                    window._saveDone = false;
+                    $.ajax( { url: "https://api.mlab.com/api/1/databases/alphastoka/collections/" +
+                                    MLAB_TEMP_COLLECTION + "/?apiKey=" + MLAB_API_KEY,
+                              data: JSON.stringify( rawData ),
+                              type: "POST",
+                              success: function(){
+                                window._saveDone = true;
+                              },
+                              contentType: "application/json" } );
+
+                }, rawData, MLAB_API_KEY, MLAB_TEMP_COLLECTION);
 
 
-                if (!next) {
-                    console.log('end of Q');
-                    var file = fs.open('data/collection.json', 'w');
-                    file.write(JSON.stringify(collection));
-                    file.close();
-                    phantom.exit();
-                } else {
-                    var fsnapshot = fs.open('data/snapshot.json', 'w');
-                    var fseedlist = fs.open('data/snapshot_seedlist.json', 'w');
-                    fsnapshot.write(JSON.stringify(collection));
-                    fseedlist.write(JSON.stringify(seedList));
+                waitFor(function check(){
+                    return page.evaluate(function(){
+                        return window._saveDone;
+                    });
+                }, function onReady(){
+                    if (!next) {
+                        console.log('end of Q');
+                        phantom.exit();
+                    } else {
+                        walk(next, page);
+                    }
+                }, 6000); // 6 seconds maximum timeout
 
-                    fsnapshot.close();
-                    fseedlist.close();
 
-                    walk(next, page);
-                }
             }
 
             getNthImage(Nlist.shift(), done);
