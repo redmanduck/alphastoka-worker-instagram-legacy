@@ -17,6 +17,8 @@ function createPage() {
     return p;
 }
 
+var lodis = {};
+
 function waitFor(testFx, onReady, timeOutMillis) {
     var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
         start = new Date().getTime(),
@@ -41,7 +43,8 @@ function waitFor(testFx, onReady, timeOutMillis) {
 };
 
 //List of nodes to start from (root nodes)
-var seedList =  [{ username: 'ssabpisa', depth : 0}]// require('./init.json');
+//becuase seedList will grow with rabbit mq
+// var seedList =  [{ username: 'ssabpisa', depth : 0}];
 
 //Colection result
 var collection = {};
@@ -60,6 +63,7 @@ function getImage(index, page) {
 
 //Recursive walk function
 function walk(user, page) {
+
     console.log("Stalking", user.username, "depth", user.depth, user);
     if (page) page.close();
     page = createPage();
@@ -90,9 +94,11 @@ function walk(user, page) {
                     window.msg = d;
                 }, headers);
             };
+
             var on_error =  function() {
                 window.callPhantom({ evt: 'error' });
             };
+
             window.client.connect('guest', 'guest', on_connect, on_error, '/');
 
         }, QUEUE_NAME);
@@ -136,12 +142,16 @@ function walk(user, page) {
                 page.evaluate(function(followingItems, QUEUE_NAME){
                     for(var j = 0 ;j<followingItems.length; j++){
                         var toCommander = followingItems[j];
-                        window.client.send("/amq/queue/" + QUEUE_NAME, {priority: 9},  JSON.stringify(toCommander));
+                        if(lodis[user.username] === true){
+                            console.log("Lodis caught ", user.username, " already");
+                        }else{
+                            window.client.send("/amq/queue/" + QUEUE_NAME, {priority: 9},  JSON.stringify(toCommander));
+                        }
 
                     }
                 }, followingItems, QUEUE_NAME);
             } else {
-                console.log("Max depth reached.");
+                console.log("Max depth reached, will not go deeper.");
             }
 
             rawData.followers = followingItems;
@@ -277,6 +287,7 @@ function walk(user, page) {
                         console.log('end of Q');
                         phantom.exit();
                     } else {
+                        lodis[user.username] = true;
                         walk(next, page);
                     }
                 }, 6000); // 6 seconds maximum timeout
@@ -290,4 +301,5 @@ function walk(user, page) {
     }); //main page open
 } //end of walk
 
-walk(seedList.shift());
+//start with dummy user with no following
+walk({ username: 'gaysorn' , depth: 0 });
