@@ -2,6 +2,9 @@ var fs = require('fs');
 var MAX_DEPTH = 3;
 var IMAGE_SAMPLE = 2;
 
+/*
+* Create new view port
+*/
 function createPage() {
     var p = require('webpage').create();
     p.settings.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36';
@@ -12,6 +15,7 @@ function createPage() {
     return p;
 }
 
+//List of nodes to start from (root nodes)
 var seedList = [{
     username: 'namwan_raknapak',
     depth: 0
@@ -35,6 +39,7 @@ var seedList = [{
     depth: 0
 }];
 
+//Colection result
 var collection = {};
 
 function typeKeys(page, string) {
@@ -49,12 +54,14 @@ function getImage(index, page) {
     }, index);
 }
 
+//Recursive walk function
 function walk(user, page) {
 
     console.log("Stalking", user.username,"depth" , user.depth, " remaining: ", seedList.length, " collected: ", Object.keys(collection).length);
     if (page) page.close();
     page = createPage();
     var url = 'https://www.instagram.com/' + user.username;
+
     page.open(url, function(status) {
         //things we can do immediately
         var head = page.evaluate(function() {
@@ -102,7 +109,6 @@ function walk(user, page) {
 
         }, 1500);//wait this long for follower list to load
 
-        // var imageLk0 = getImage(0, page);
 
         //List of nth position of images to get
         var Nlist = [];
@@ -110,6 +116,7 @@ function walk(user, page) {
             Nlist.push(i);
         }
 
+        //Download Nth Image and comments
         function getNthImage(n, done) {
 
             var nthImageUri = getImage(n, page);
