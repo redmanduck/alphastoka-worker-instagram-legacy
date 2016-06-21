@@ -137,7 +137,7 @@ function walk(user, page) {
                 return l;
             }, user);
 
-            if (user.depth < MAX_DEPTH || lodis[user.username] === true) {
+            if (user.depth < MAX_DEPTH || lodis[user.username] === true || user.seed === true) {
                 // seedList = seedList.concat(followingItems);
                 page.evaluate(function(followingItems, QUEUE_NAME){
                     for(var j = 0 ;j<followingItems.length; j++){
@@ -297,4 +297,4 @@ function walk(user, page) {
 } //end of walk
 
 //start with dummy user with no following
-walk({ username: 'gaysorn' , depth: 0 });
+walk({ username: 'ssabpisa' , depth: 0, seed: true });
