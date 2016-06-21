@@ -1,5 +1,5 @@
 var fs = require('fs');
-var MAX_DEPTH = 2;
+var MAX_DEPTH = 3;
 var IMAGE_SAMPLE = 2;
 
 function createPage() {
@@ -12,12 +12,17 @@ function createPage() {
     return p;
 }
 
-
 var seedList = [{
     username: 'namwan_raknapak',
     depth: 0
 }, {
     username: 'yummygallery_bkk',
+    depth: 0
+},{
+    username: 'pangoofficial',
+    depth: 0
+},{
+    username: 'mildtaechanuruk',
     depth: 0
 }, {
     username: 'woody_chai',
@@ -107,7 +112,7 @@ function walk(user, page) {
 
         function getNthImage(n, done) {
 
-            var nthImageUri = getImage(Nlist.shift(), page);
+            var nthImageUri = getImage(n, page);
 
             var subPage = createPage();
             var surl = 'https://www.instagram.com' + nthImageUri;
@@ -185,11 +190,22 @@ function walk(user, page) {
                     next = seedList.shift();
                 }while(next in collection);
 
+
                 if (!next) {
                     console.log('end of Q');
-                    fs.write('data/collection.json', JSON.stringify(collection), 'w');
+                    var file = fs.open('data/collection.json', 'w');
+                    file.write(JSON.stringify(collection));
+                    file.close();
                     phantom.exit();
                 } else {
+                    var fsnapshot = fs.open('data/snapshot.json', 'w');
+                    var fseedlist = fs.open('data/snapshot_seedlist.json', 'w');
+                    fsnapshot.write(JSON.stringify(collection));
+                    fseedlist.write(JSON.stringify(seedList));
+
+                    fsnapshot.close();
+                    fseedlist.close();
+
                     walk(next, page);
                 }
             }
