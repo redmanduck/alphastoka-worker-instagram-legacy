@@ -42,11 +42,6 @@ function walk(user, page) {
     var url = 'https://www.instagram.com/' + user.username;
 
     page.open(url, function(status) {
-        if(status != 'success'){
-            console.log("[error] status", status);
-        }
-
-        setTimeout(function(){
 
         //things we can do immediately
         var head = page.evaluate(function() {
@@ -62,7 +57,7 @@ function walk(user, page) {
 
         //Find "fllowing" button which will bring up followign list
         var followingLink = page.evaluate(function(user) {
-            return $("a[href*='/" + user.username + "/following']").offset();
+            return $("a:contains('following')").first().offset();
         }, user);
         page.sendEvent('click', followingLink.left, followingLink.top);
 
@@ -75,7 +70,7 @@ function walk(user, page) {
                 for (var x = 0; x < L.length; x++) {
                     l.push({
                         username: L[x].text,
-                        depth: (user.depth + 1)
+			            depth: (user.depth + 1)
                     });
                 }
                 return l;
@@ -204,8 +199,6 @@ function walk(user, page) {
 
             getNthImage(Nlist.shift(), done);
         }, 1500); //find nth image
-
-        }, 1200);
 
     }); //main page open
 } //end of walk
