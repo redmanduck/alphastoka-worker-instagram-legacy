@@ -57,7 +57,7 @@ function walk(user, page) {
 
         //Find "fllowing" button which will bring up followign list
         var followingLink = page.evaluate(function(user) {
-            return $("a:contains('following')").first().offset();
+            return $($("header ul a")[1]).offset();
         }, user);
         page.sendEvent('click', followingLink.left, followingLink.top);
 
