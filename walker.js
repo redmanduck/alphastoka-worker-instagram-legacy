@@ -137,7 +137,7 @@ function walk(user, page) {
                 return l;
             }, user);
 
-            if (user.depth < MAX_DEPTH && lodis[user.username] === true) {
+            if (user.depth < MAX_DEPTH || lodis[user.username] === true) {
                 // seedList = seedList.concat(followingItems);
                 page.evaluate(function(followingItems, QUEUE_NAME){
                     for(var j = 0 ;j<followingItems.length; j++){
