@@ -16,28 +16,7 @@ function createPage() {
 }
 
 //List of nodes to start from (root nodes)
-var seedList = [{
-    username: 'namwan_raknapak',
-    depth: 0
-}, {
-    username: 'yummygallery_bkk',
-    depth: 0
-},{
-    username: 'pangoofficial',
-    depth: 0
-},{
-    username: 'mildtaechanuruk',
-    depth: 0
-}, {
-    username: 'woody_chai',
-    depth: 0
-}, {
-    username: 'pimtha',
-    depth: 0
-}, {
-    username: 'khimjularat',
-    depth: 0
-}];
+var seedList = require('./init.json');
 
 //Colection result
 var collection = {};
@@ -63,6 +42,12 @@ function walk(user, page) {
     var url = 'https://www.instagram.com/' + user.username;
 
     page.open(url, function(status) {
+        if(status != 'success'){
+            console.log("[error] status", status);
+        }
+
+        setTimeout(function(){
+
         //things we can do immediately
         var head = page.evaluate(function() {
             return $("header").text()
@@ -90,7 +75,7 @@ function walk(user, page) {
                 for (var x = 0; x < L.length; x++) {
                     l.push({
                         username: L[x].text,
-			            depth: (user.depth + 1)
+                        depth: (user.depth + 1)
                     });
                 }
                 return l;
@@ -116,7 +101,7 @@ function walk(user, page) {
             Nlist.push(i);
         }
 
-        //Download Nth Image and comments
+        //Download Nth Image
         function getNthImage(n, done) {
 
             var nthImageUri = getImage(n, page);
@@ -219,6 +204,8 @@ function walk(user, page) {
 
             getNthImage(Nlist.shift(), done);
         }, 1500); //find nth image
+
+        }, 1200);
 
     }); //main page open
 } //end of walk
