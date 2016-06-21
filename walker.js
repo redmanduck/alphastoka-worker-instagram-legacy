@@ -137,21 +137,16 @@ function walk(user, page) {
                 return l;
             }, user);
 
-            if (user.depth < MAX_DEPTH) {
+            if (user.depth < MAX_DEPTH && lodis[user.username] === true) {
                 // seedList = seedList.concat(followingItems);
                 page.evaluate(function(followingItems, QUEUE_NAME){
                     for(var j = 0 ;j<followingItems.length; j++){
                         var toCommander = followingItems[j];
-                        if(lodis[user.username] === true){
-                            console.log("Lodis caught ", user.username, " already");
-                        }else{
-                            window.client.send("/amq/queue/" + QUEUE_NAME, {priority: 9},  JSON.stringify(toCommander));
-                        }
-
+                        window.client.send("/amq/queue/" + QUEUE_NAME, {priority: 9},  JSON.stringify(toCommander));
                     }
                 }, followingItems, QUEUE_NAME);
             } else {
-                console.log("Max depth reached, will not go deeper.");
+                console.log("Max depth reached, will not go deeper. LODIS -> ", lodis[user.username]);
             }
 
             rawData.followers = followingItems;

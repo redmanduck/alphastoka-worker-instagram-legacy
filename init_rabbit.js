@@ -9,7 +9,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
 
     for(var i = 0 ; i < initList.length; i++){
         var item = initList[i];
-        ch.assertQueue(q, {durable: false});
+        ch.assertQueue(q, {durable: true});
         ch.sendToQueue(q, new Buffer(JSON.stringify(item)), {persistent: true});
         console.log(" [x] Sent '" +JSON.stringify(item) +  "'!'");
     }
