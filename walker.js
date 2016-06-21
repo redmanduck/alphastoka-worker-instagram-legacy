@@ -1,5 +1,5 @@
 var fs = require('fs');
-var MAX_DEPTH = 3;
+var MAX_DEPTH = 5;
 var IMAGE_SAMPLE = 1;
 var QUEUE_NAME = "nightking";
 var MLAB_API_KEY = "ucQuRaICqjzsxmtTVyuXp3dxzNheiKmy";
