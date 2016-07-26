@@ -29,6 +29,13 @@ class RedBrain:
         except Exception:
             return ""
 
+    def getLogoUrl(self):
+        #channel-header-profile-image
+        try:
+            return str(self.soup.select(".channel-header-profile-image")[0].attrs['src'])
+        except Exception:
+            return ""
+
     def getFollowerAndViewCount(self):
         try:
             raw = str(self.soup.select(".about-stats")[0].text.strip())
@@ -81,6 +88,7 @@ def parseChannelByUrl(url, linkQ, visited):
     data = {
         'email': '',
         'country': '',
+        'logo': '',
         'category': '',
         'phone': '',
         'title': '',
@@ -98,6 +106,7 @@ def parseChannelByUrl(url, linkQ, visited):
     #parse
     data['title'] = brain.getTitle()
     data['email'] = brain.getEmail()
+    data['logo'] = brain.getLogoUrl()
     data['country'] = brain.getCountry()
     fvc = brain.getFollowerAndViewCount()
     data['subscriber_count'] = fvc[0][0].replace(",", "")
@@ -136,10 +145,12 @@ while True:
         print("Remaining in Q", linkQ.qsize())
         MLAB_API_KEY = "ucQuRaICqjzsxmtTVyuXp3dxzNheiKmy";
         MLAB_TEMP_COLLECTION = "raw_redwalker"
+        # print(x, "-")
         mongoUri = "https://api.mlab.com/api/1/databases/alphastoka/collections/" + MLAB_TEMP_COLLECTION + "/?apiKey=" + MLAB_API_KEY
         r=  requests.post(mongoUri, headers={
             "Content-Type" : "application/json"
             }, data=json.dumps(x))
+
         print(r.status_code)
     except Exception as ex:
         print(ex)
