@@ -1,5 +1,10 @@
 import requests, re
 from bs4 import BeautifulSoup
+import pika
+
+connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+channel = connection.channel()
+channel.queue_declare(queue='redwalker')
 
 class RedBrain:
 
@@ -25,7 +30,11 @@ class RedBrain:
         rgx_reflink = r"\"(/channel/[^\"]*)\""
         m2 = re.findall(rgx_reflink, stx)
 
-        return m1+m2
+        M = []
+        for m in m1+m2:
+            k = m.split("/")
+            M.append(k[2])
+        return M
 
     def getEmail(self):
         descriptionSection = self.getDescription()
@@ -64,7 +73,19 @@ def parseChannelByUrl(url):
     data['email'] = brain.getEmail()
     data['country'] = brain.getCountry()
     data['ref'] = brain.getAllChannelRef()
+
+    # linkQ = linkQ + data['ref']
+    channel.basic_publish(exchange='',
+                      routing_key='hello',
+                      body='Hello World!')
+
     return data
 
-x = parseChannelByIdOrUser("UCO5rwjHY-jcX-gmzOCSApOQ")
-print(x)
+
+linkQ  = ["UCO5rwjHY-jcX-gmzOCSApOQ"]
+while len(linkQ) > 0:
+    q = linkQ.pop()
+    x = parseChannelByIdOrUser(q)
+    print(x)
+
+connection.close()
