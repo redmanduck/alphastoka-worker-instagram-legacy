@@ -2,8 +2,6 @@ import requests, re
 from bs4 import BeautifulSoup
 import pika
 import queue
-MLAB_API_KEY = "ucQuRaICqjzsxmtTVyuXp3dxzNheiKmy";
-MLAB_TEMP_COLLECTION = "raw_redwalker"
 
 #connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 #channel = connection.channel()
@@ -134,6 +132,8 @@ while True:
         # result.append(x)
         # print("x=", q, x)
         print("Remaining in Q", linkQ.qsize())
+        MLAB_API_KEY = "ucQuRaICqjzsxmtTVyuXp3dxzNheiKmy";
+        MLAB_TEMP_COLLECTION = "raw_redwalker"
         mongoUri = "https://api.mlab.com/api/1/databases/alphastoka/collections/" + MLAB_TEMP_COLLECTION + "/?apiKey=" + MLAB_API_KEY
         r=  requests.post(mongoUri, headers={
             "content-type" : "application/json"
