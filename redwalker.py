@@ -136,7 +136,7 @@ while True:
         MLAB_TEMP_COLLECTION = "raw_redwalker"
         mongoUri = "https://api.mlab.com/api/1/databases/alphastoka/collections/" + MLAB_TEMP_COLLECTION + "/?apiKey=" + MLAB_API_KEY
         r=  requests.post(mongoUri, headers={
-            "content-type" : "application/json"
+            "Content-Type" : "application/json"
             }, data=x)
         print(r.status_code)
     except Exception as ex:
