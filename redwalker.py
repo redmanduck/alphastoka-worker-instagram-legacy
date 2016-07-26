@@ -2,6 +2,8 @@ import requests, re
 from bs4 import BeautifulSoup
 import pika
 import queue
+import json
+
 
 #connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 #channel = connection.channel()
@@ -137,7 +139,7 @@ while True:
         mongoUri = "https://api.mlab.com/api/1/databases/alphastoka/collections/" + MLAB_TEMP_COLLECTION + "/?apiKey=" + MLAB_API_KEY
         r=  requests.post(mongoUri, headers={
             "Content-Type" : "application/json"
-            }, data=x)
+            }, data=json.dumps(x))
         print(r.status_code)
     except Exception as ex:
         print(ex)
